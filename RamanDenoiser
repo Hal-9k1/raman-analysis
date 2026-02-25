@@ -284,3 +284,22 @@ class RamanDenoiser:
     #plot less noisy plot
     denoiser.plot_comparison()
     denoiser.save_processed(sys.argv[1][:-4] + '-processed.csv')
+
+if __name__ == "__main__":
+    #load csv
+    denoiser = RamanDenoiser.from_csv(
+        sys.argv[1],
+        wavenumber_col=1, 
+        intensity_col=3,
+        skiprows=5
+    )
+    denoiser.als_baseline(lam=1e5, p=0.01)
+    denoiser.fir_filter(cutoff_freq=0.1, numtaps=51)
+    #denoiser.wavelet_denoise(wavelet='db4', threshold_mode='soft', level=3)
+    denoiser.trim(low=1000)
+    denoiser.normalize(method='max')
+    #peaks, properties = denoiser.find_peaks(prominence=0.1, distance=20)
+    #print(f"Found {len(peaks)} peaks")
+
+
+
