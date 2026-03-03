@@ -1,12 +1,13 @@
-import sys
-import numpy as np
-import pandas as pd
+from matplotlib.lines import Line2D
 from scipy import signal, sparse
+from scipy.ndimage import gaussian_filter1d
+from scipy.signal import hilbert, firwin, lfilter
 from scipy.sparse.linalg import spsolve
 import matplotlib.pyplot as plt
-from scipy.signal import hilbert, firwin, lfilter
-from scipy.ndimage import gaussian_filter1d
+import numpy as np
+import pandas as pd
 import pywt
+import sys
 
 class RamanDenoiser:
     def __init__(self, wavenumbers=None, intensities=None):
@@ -118,7 +119,7 @@ class RamanDenoiser:
         for i in range(1, len(coeffs)):
             coeffs_thresh.append(pywt.threshold(coeffs[i], threshold, mode=threshold_mode))
 
-        # recounstruction, maybe take out
+        # recounstruction
         self.processed = pywt.waverec(coeffs_thresh, wavelet)[:len(data)]
     
     def als_baseline(self, lam=1e6, p=0.01, niter=10):
@@ -247,7 +248,6 @@ class RamanDenoiser:
                                fontsize=8, ha='center', va='bottom')
                 
                 # legend
-                from matplotlib.lines import Line2D
                 legend_elements = [
                     Line2D([0], [0], marker='o', color='w', markerfacecolor='darkgreen', 
                           markersize=8, label='Strong peaks'),
