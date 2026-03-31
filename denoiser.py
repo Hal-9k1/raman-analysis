@@ -13,11 +13,12 @@ if __name__ == '__main__':
 from matplotlib.lines import Line2D
 from scipy import signal, sparse
 from scipy.ndimage import gaussian_filter1d
-from scipy.signal import hilbert, firwin, lfilter
+from scipy.signal import firwin, lfilter
 from scipy.sparse.linalg import spsolve
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pysdkit
 import pywt
 import sys
 
@@ -92,25 +93,20 @@ class RamanDenoiser:
 
         self.processed = lfilter(fir_coeff, 1.0, self.processed)
 
-    def hilbert_vibration_decomposition(self, num_components=3):
-        #hilbert transform method
-        analytic_signal = hilbert(self.processed)
-        amplitude_envelope = np.abs(analytic_signal)
-        instantaneous_phase = np.unwrap(np.angle(analytic_signal))
-        instantaneous_frequency = np.diff(instantaneous_phase) / (2.0 * np.pi)
+    def hilbert_vibration_decomposition(self):
+        c1, c2 = pysdkit.HVD(K=2, fpar=cutoff_freq).fit_transform(self.processed)
+        self.processed_wavenumbers = self.processed_wavenumbers[:-2]
+        c1_stdev = np.std(c1)
+        signal_dir = np.sign(np.diff(self.processed)) # maybe use c1 or c2?
+        extr_mask = signal_diff[:-1] != signal_diff[1:] & signal_diff[1:] != 0
+        extr_mask = np.insert(extr_mask, 0, False)
+        extr_int = self.processed[extr_mask]
+        extr_wn = self.processed_wavenumbers[extr_mask]
+        extr_type = signal_dir[extr_mask] # -1 for maxima, 1 for minima
+        max_idx = np.argwhere(extr_type == -1)
+        max_idx = max_idx[~np.isin(max_idx, [0, len(max_idx) - 1])]
+        side_avg_height = (extr_int[max_idx] - extr_int[[max_idx - 1, max_idx + 1]]).sum() / 2
 
-        #storing denoiser signal
-        self.processed = amplitude_envelope
-
-        #decomposition results
-        self.hvd_results = {
-            'analytic_signal': analytic_signal,
-            'envelope': amplitude_envelope,
-            'instantaneous_phase': instantaneous_phase,
-            'instantaneous_frequency': instantaneous_frequency
-        }
-
-        return self.hvd_results
 
     def wavelet_denoise(self, wavelet='sym4', level=None, threshold_mode='soft'):
         if level is None:
